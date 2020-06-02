@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace SPUtil.Core
 {
-    public class EventHandler: IVsRunningDocTableEvents
+    public class EventHandler : IVsRunningDocTableEvents
     {
         private readonly ISharePointProjectService _spProjService;
         private readonly IVsRunningDocumentTable _rdt;
@@ -88,7 +88,7 @@ namespace SPUtil.Core
         public void OnItemSave(ProjectItem projectItem)
         {
             Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
-            
+
             try
             {
                 EnvDTE.Project dteProject = projectItem.ContainingProject;
@@ -124,17 +124,25 @@ namespace SPUtil.Core
         {
             Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
 
-            _rdt.GetDocumentInfo(docCookie, out uint flags, out uint rLocks, out uint eLocks, out string path, out IVsHierarchy hierarchy, out uint projectItemId, out IntPtr unknow);
+            _rdt.GetDocumentInfo(docCookie,
+                out uint flags,
+                out uint rLocks,
+                out uint eLocks,
+                out string path,
+                out IVsHierarchy hierarchy,
+                out uint projectItemId,
+                out IntPtr unknow);
 
             try
             {
                 if (VSConstants.VSITEMID_NIL != projectItemId &&
-                        VSConstants.VSITEMID_ROOT != projectItemId &&
-                        VSConstants.VSITEMID_SELECTION != projectItemId &&
-                        VSConstants.S_OK == hierarchy.GetProperty(projectItemId, (int)__VSHPROPID.VSHPROPID_ExtObject, out object objProj))
+                    VSConstants.VSITEMID_ROOT != projectItemId &&
+                    VSConstants.VSITEMID_SELECTION != projectItemId &&
+                    VSConstants.S_OK == hierarchy.GetProperty(projectItemId, (int)__VSHPROPID.VSHPROPID_ExtObject, out object projItem))
                 {
-                    var projectItem = objProj as EnvDTE.ProjectItem;
-                    OnItemSave(projectItem);
+                    var projectItem = projItem as EnvDTE.ProjectItem;
+                    if (projectItem != null)
+                        OnItemSave(projectItem);
                 }
             }
             catch

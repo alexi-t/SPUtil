@@ -11,6 +11,7 @@ using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using SPExt.Core.Services;
 using Task = System.Threading.Tasks.Task;
+using Microsoft.VisualStudio.Threading;
 
 namespace SPUtil.DeployToGAC
 {
@@ -46,7 +47,9 @@ namespace SPUtil.DeployToGAC
             commandService = commandService ?? throw new ArgumentNullException(nameof(commandService));
 
             var menuCommandID = new CommandID(CommandSet, CommandId);
-            var menuItem = new MenuCommand(this.Execute, menuCommandID);
+            var menuItem = new MenuCommand((s, e) => { 
+                ThreadHelper.JoinableTaskFactory.RunAsync(async () => await ExecuteAsync(s, e)); 
+            }, menuCommandID);
             commandService.AddCommand(menuItem);
         }
 
@@ -91,17 +94,21 @@ namespace SPUtil.DeployToGAC
         /// </summary>
         /// <param name="sender">Event sender.</param>
         /// <param name="e">Event args.</param>
-        private async void Execute(object sender, EventArgs e)
+        private async Task ExecuteAsync(object sender, EventArgs e)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-            DTE dte = await this.ServiceProvider.GetServiceAsync(typeof(DTE)) as DTE;
-            ISharePointProjectService sharePointProjectService =
+            var dte = await this.ServiceProvider.GetServiceAsync(typeof(DTE)) as DTE;
+            var sharePointProjectService =
                 await this.ServiceProvider.GetServiceAsync(typeof(ISharePointProjectService)) as ISharePointProjectService;
+
+            if (dte == null || sharePointProjectService == null)
+                return;
+
             var selectedProjects = dte.ActiveSolutionProjects as Array;
             if (selectedProjects != null && selectedProjects.Length > 0)
             {
-                var currentProject = sharePointProjectService.Convert<Project, ISharePointProject>((Project)selectedProjects.GetValue(0)) as ISharePointProject;
+                var currentProject = sharePointProjectService.Convert<Project, ISharePointProject>((Project)selectedProjects.GetValue(0));
                 var extService = new SPProjectExtService(currentProject);
                 var assembliesToDeploy = extService.GetDeployableAssemblies(out string[] missing);
                 if (assembliesToDeploy.Any())

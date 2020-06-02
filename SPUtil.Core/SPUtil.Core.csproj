@@ -537,6 +537,8 @@
     <Compile Include="ProjectProperties\PropertySource.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Service\CopyToRootService.cs" />
+    <Compile Include="Service\Model\IArtefact.cs" />
+    <Compile Include="Service\Model\SPFileArtifact.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

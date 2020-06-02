@@ -1,5 +1,6 @@
 ﻿using EnvDTE;
 using Microsoft.VisualStudio.SharePoint;
+using SPUtil.Core.Service.Model;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -18,72 +19,66 @@ namespace SPUtil.Core.Service
             _spProjService = spProjectService;
         }
 
+        private List<IArtifact> FlattenToArtifacts(ProjectItem projectItem)
+        {
+            Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
+
+            var list = new List<IArtifact>();
+            try
+            {
+                var spFileProjItem = _spProjService.Convert<ProjectItem, ISharePointProjectItemFile>(projectItem);
+                if (spFileProjItem != null)
+                {
+                    list.Add(new SPFileArtifact(spFileProjItem));
+                }
+            }
+            catch { }
+
+            try
+            {
+                if (projectItem.ProjectItems.Count > 0)
+                {
+                    for (int i = 1; i <= projectItem.ProjectItems.Count; i++)
+                    {
+                        ProjectItem childItem = projectItem.ProjectItems.Item(i);
+                        list.AddRange(FlattenToArtifacts(childItem));
+                    }
+                }
+
+            }
+            catch { }
+
+            return list;
+        }
         
         public void CopyProjectItem(ProjectItem item)
         {
             Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
 
-            var logger = _spProjService.Logger;
+            var log = _spProjService.Logger;
 
+            log.ActivateOutputWindow();
 
-            logger.ActivateOutputWindow();
+            log.WriteLine("======= Start copy artifacts =======", LogCategory.Status);
 
-            try
+            var artifacts = FlattenToArtifacts(item);
+
+            log.WriteLine($"Total artifacts count: {artifacts.Count}", LogCategory.Status);
+
+            foreach (IArtifact artifact in artifacts)
             {
-                var spFile = _spProjService.Convert<ProjectItem, ISharePointProjectItemFile>(item);
-                if (spFile != null)
+                try
                 {
-                    if (spFile.DeploymentType == DeploymentType.TemplateFile ||
-                        spFile.DeploymentType == DeploymentType.RootFile)
-                    {
-                        var targetPath =
-                            Path.Combine(
-                                Path.Combine(spFile.DeploymentRoot, spFile.DeploymentPath).Replace("{SharePointRoot}", _spProjService.SharePointInstallPath),
-                                Path.GetFileName(spFile.FullPath)
-                            );
-                        var sourcePath = spFile.FullPath;
-                        File.Copy(sourcePath, targetPath, true);
-                        logger.WriteLine($"Copy {sourcePath} -> {targetPath}", LogCategory.Status);
-
-                    }
+                    artifact.QuickDeploy();
+                }
+                catch (Exception ex)
+                {
+                    log.WriteLine($"Unhandled error copy artifact {ex}", LogCategory.Status);
                 }
             }
-            catch { }
 
-            // See if this item is an SPI.
-            try
-            {
-                var spItem = _spProjService.Convert<ProjectItem, ISharePointProjectItem>(item);
-                if (spItem != null)
-                {
+            log.WriteLine("======= End copy artifacts =======", LogCategory.Status);
 
-                }
-            }
-            catch { }
-
-            // See if this item is a Feature.
-            try
-            {
-                var spFeature = _spProjService.Convert<ProjectItem, ISharePointProjectFeature>(item);
-                if (spFeature != null)
-                {
-                }
-            }
-            catch { }
-
-            try
-            {
-                if (item.ProjectItems.Count > 0)
-                {
-                    for (int i = 1; i <= item.ProjectItems.Count; i++)
-                    {
-                        ProjectItem childItem = item.ProjectItems.Item(i);
-                        CopyProjectItem(childItem);
-                    }
-                }
-
-            }
-            catch { }
         }
     }
 }
