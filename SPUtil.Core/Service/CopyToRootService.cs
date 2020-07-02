@@ -19,7 +19,7 @@ namespace SPUtil.Core.Service
             _spProjService = spProjectService;
         }
 
-        private List<IArtifact> FlattenToArtifacts(ProjectItem projectItem)
+        public List<IArtifact> FlattenToArtifacts(ProjectItem projectItem)
         {
             Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
 

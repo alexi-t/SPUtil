@@ -61,7 +61,7 @@
 					<ButtonText>Copy To Root</ButtonText>
 				</Strings>
 			</Button>
-			<Button guid="guidCopyToRootPackageCmdSet" id="CopyToRootId" priority="0x0100" type="Button">
+			<Button guid="guidCopyToRootPackageCmdSet" id="CopyToRooFldtId" priority="0x0100" type="Button">
 				<Parent guid="guidCopyToRootPackageCmdSet" id="cmdidGrpQuickDeployFld" />
 				<Strings>
 					<ButtonText>Copy To Root</ButtonText>
@@ -96,6 +96,7 @@
 		<GuidSymbol name="guidCopyToRootPackageCmdSet" value="{b1adb76f-4720-451d-a3d5-1fb8e21615d2}">
 			<IDSymbol name="MyMenuGroup" value="0x1020" />
 			<IDSymbol name="CopyToRootId" value="0x0101" />
+			<IDSymbol name="CopyToRooFldtId" value="0x0102" />
 
 			<IDSymbol name="cmdidGrpQuickDeployFle" value="0x3040" />
 			<IDSymbol name="cmdidGrpQuickDeployFld" value="0x3041" />

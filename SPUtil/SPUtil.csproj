@@ -99,6 +99,11 @@
     </VSCTCompile>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\SPUtil.Commands\SPUtil.Commands.csproj">
+      <Project>{9BFCE2FE-F210-4D70-8891-DFCACB5DFF7F}</Project>
+      <Name>SPUtil.Commands</Name>
+      <IncludeOutputGroupsInVSIX>BuiltProjectOutputGroup%3bBuiltProjectOutputGroupDependencies%3bGetCopyToOutputDirectoryItems%3bSatelliteDllsProjectOutputGroup%3b</IncludeOutputGroupsInVSIX>
+    </ProjectReference>
     <ProjectReference Include="..\SPUtil.Core\SPUtil.Core.csproj">
       <Project>{e8945ca7-20ec-49b9-94f5-ed5776925ae3}</Project>
       <Name>SPUtil.Core</Name>

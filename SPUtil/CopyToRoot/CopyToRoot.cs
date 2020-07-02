@@ -3,8 +3,11 @@ using System.ComponentModel.Design;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
+using EnvDTE;
+using Microsoft.VisualStudio.SharePoint;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
+using SPUtil.Core.Service;
 using Task = System.Threading.Tasks.Task;
 
 namespace SPUtil.CopyToRoot
@@ -17,7 +20,8 @@ namespace SPUtil.CopyToRoot
         /// <summary>
         /// Command ID.
         /// </summary>
-        public const int CommandId = 0x0101;
+        public const int CommandItemId = 0x0101;
+        public const int CommandFldId = 0x0102;
 
         /// <summary>
         /// Command menu group (command set GUID).
@@ -40,10 +44,15 @@ namespace SPUtil.CopyToRoot
             this.package = package ?? throw new ArgumentNullException(nameof(package));
             commandService = commandService ?? throw new ArgumentNullException(nameof(commandService));
 
-            var menuCommandID = new CommandID(CommandSet, CommandId);
-            var menuItem = new OleMenuCommand(this.Execute, menuCommandID);
-            
-            commandService.AddCommand(menuItem);
+            var copyItemCommandID = new CommandID(CommandSet, CommandItemId);
+            var copyProjectItemCommand = new OleMenuCommand(this.CopyItemHandler, copyItemCommandID);
+            copyProjectItemCommand.BeforeQueryStatus += CopyItemStatusCheck;
+            commandService.AddCommand(copyProjectItemCommand);
+
+            var copyFldCommandID = new CommandID(CommandSet, CommandFldId);
+            var copyFldCommand = new OleMenuCommand(this.CopyItemHandler, copyFldCommandID);
+            copyFldCommand.BeforeQueryStatus += CopyItemStatusCheck;
+            commandService.AddCommand(copyFldCommand);
         }
 
         /// <summary>
@@ -80,6 +89,41 @@ namespace SPUtil.CopyToRoot
             Instance = new CopyToRoot(package, commandService);
         }
 
+        private void CopyItemStatusCheck(object sender, EventArgs e)
+        {
+            var command = sender as OleMenuCommand;
+            if (command == null)
+                return;
+
+            ThreadHelper.JoinableTaskFactory.Run(async () =>
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                var dte = await this.ServiceProvider.GetServiceAsync(typeof(DTE)) as DTE;
+                var sharePointProjectService =
+                    await this.ServiceProvider.GetServiceAsync(typeof(ISharePointProjectService)) as ISharePointProjectService;
+                if (dte == null || sharePointProjectService == null || !sharePointProjectService.IsSharePointInstalled)
+                    return;
+
+                var service = new CopyToRootService(sharePointProjectService);
+
+
+                foreach (SelectedItem selectedItem in dte.SelectedItems)
+                {
+                    var artifacts = service.FlattenToArtifacts(selectedItem.ProjectItem);
+                    if (artifacts.Count == 0)
+                    {
+                        command.Enabled = false;
+                        command.Visible = false;
+                    }
+                    else
+                    {
+                        command.Enabled = true;
+                        command.Visible = true;
+                    }
+                }
+            });
+        }
+
         /// <summary>
         /// This function is the callback used to execute the command when the menu item is clicked.
         /// See the constructor to see how the menu item is associated with this function using
@@ -87,20 +131,26 @@ namespace SPUtil.CopyToRoot
         /// </summary>
         /// <param name="sender">Event sender.</param>
         /// <param name="e">Event args.</param>
-        private void Execute(object sender, EventArgs e)
+        private void CopyItemHandler(object sender, EventArgs e)
         {
-            ThreadHelper.ThrowIfNotOnUIThread();
-            string message = string.Format(CultureInfo.CurrentCulture, "Inside {0}.MenuItemCallback()", this.GetType().FullName);
-            string title = "CopyToRoot";
+            ThreadHelper.JoinableTaskFactory.Run(async () =>
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-            // Show a message box to prove we were here
-            VsShellUtilities.ShowMessageBox(
-                this.package,
-                message,
-                title,
-                OLEMSGICON.OLEMSGICON_INFO,
-                OLEMSGBUTTON.OLEMSGBUTTON_OK,
-                OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
+                var dte = await this.ServiceProvider.GetServiceAsync(typeof(DTE)) as DTE;
+                var sharePointProjectService =
+                    await this.ServiceProvider.GetServiceAsync(typeof(ISharePointProjectService)) as ISharePointProjectService;
+                if (dte == null || sharePointProjectService == null || !sharePointProjectService.IsSharePointInstalled)
+                    return;
+
+                var service = new CopyToRootService(sharePointProjectService);
+
+                foreach (SelectedItem selectedItem in dte.SelectedItems)
+                {
+                    service.CopyProjectItem(selectedItem.ProjectItem);
+                }
+            });
+
         }
     }
 }

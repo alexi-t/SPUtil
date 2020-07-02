@@ -19,5 +19,6 @@
     <Assets>
         <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />
         <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="%CurrentProject%.Core" Path="|SPUtil.Core|" />
+        <Asset d:Source="Project" Type="SharePoint.Commands.v5" Path="|SPUtil.Commands|" />
     </Assets>
 </PackageManifest>
